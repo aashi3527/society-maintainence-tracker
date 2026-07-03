@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resident Portal - Society Maintenance Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <h1 id="titleText">Society Maintenance</h1>
+        <p id="subTitleText">Resident Portal</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <span id="userWelcome" style="font-weight: bold; color: #cbd5e1;">Loading user...</span>
+        <button onclick="handleLogout()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Log Out</button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="grid-2">
+      <!-- Left Column: Raise & View Complaints -->
+      <div>
+        <!-- Raise Complaint Card -->
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📢 File a Maintenance Complaint</h2>
+          
+          <div id="formSuccess" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+          <div id="formError" style="background: rgba(244, 63, 94, 0.15); border: 1px solid #f43f5e; color: #f43f5e; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+
+          <form id="complaintForm" onsubmit="submitComplaint(event)">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="form-group">
+                <label class="form-label" for="category">Category</label>
+                <select id="category" class="form-control">
+                  <option value="Plumbing">🚰 Plumbing</option>
+                  <option value="Electrical">⚡ Electrical</option>
+                  <option value="Security">🔒 Security</option>
+                  <option value="Cleaning">🧹 Cleaning</option>
+                  <option value="Others">📦 Others</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="photo">Optional Photo Attachment</label>
+                <input type="file" id="photo" accept="image/*" class="form-control" style="padding: 6px 12px;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="description">Describe the Issue</label>
+              <textarea id="description" rows="3" class="form-control" placeholder="Provide details about the issue so we can assign a technician..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Complaint</button>
+          </form>
+        </div>
+
+        <!-- My Complaints History Card -->
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📋 My Complaints History</h2>
+          <div id="complaintsList">
+            <p style="color: #94a3b8; text-align: center; padding: 20px;">Fetching complaints...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Notice Board -->
+      <div>
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📌 Notice Board</h2>
+          <div id="noticesList">
+            <p style="color: #94a3b8; text-align: center; padding: 20px;">Fetching notices...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Complaint Detail Modal -->
+  <div class="modal" id="detailModal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h2 id="modalCategory" style="margin-bottom: 8px;">Complaint Details</h2>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; align-items: center;">
+        <span class="badge" id="modalStatus">Open</span>
+        <span class="badge" id="modalPriority">Medium</span>
+        <span id="modalDate" style="font-size: 0.8rem; color: #94a3b8; margin-left: auto;"></span>
+      </div>
+
+      <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 20px;">
+        <h4 style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">DESCRIPTION</h4>
+        <p id="modalDescription" style="font-size: 0.95rem; white-space: pre-wrap;"></p>
+        
+        <div id="modalPhotoWrapper" style="margin-top: 12px; display: none;">
+          <h4 style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;">ATTACHED PHOTO</h4>
+          <img id="modalPhoto" src="" alt="Attachment" style="max-width: 100%; max-height: 250px; border-radius: 6px; border: 1px solid #334155;">
+        </div>
+      </div>
+
+      <div>
+        <h3 style="font-size: 1.05rem; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 6px;">
+          ⏳ Status Timeline
+        </h3>
+        <div class="timeline" id="modalTimeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mock Mailbox Trigger & Drawer -->
+  <button class="mock-mailbox-btn" onclick="toggleMailbox()">📬 Mock Mailbox</button>
+  <div class="mock-mailbox-drawer" id="mailboxDrawer">
+    <div class="drawer-header">
+      <h4 style="color: #f59e0b;">📬 Mock Email Log</h4>
+      <button onclick="clearMockEmails()" style="background: transparent; color: #94a3b8; border: none; cursor: pointer; text-decoration: underline; font-size: 0.75rem;">Clear All</button>
+      <button onclick="toggleMailbox()" style="background: transparent; color: white; border: none; cursor: pointer; font-weight: bold;">✕</button>
+    </div>
+    <div class="drawer-body" id="mailboxBody">
+      <p style="color: #64748b; text-align: center; padding-top: 50px; font-size: 0.8rem;">No emails logged yet.</p>
+    </div>
+  </div>
+
+  <script>
+    let currentComplaints = [];
+
+    // Authenticate & Load
+    async function loadPortal() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          window.location.href = '/login.html';
+          return;
+        }
+        const data = await res.json();
+        const user = data.user;
+        
+        if (user.role === 'admin') {
+          window.location.href = '/admin.html';
+          return;
+        }
+
+        document.getElementById('userWelcome').innerText = `@${user.username} (Unit ${user.unit_number})`;
+        document.getElementById('titleText').innerText = `Unit ${user.unit_number} Maintenance`;
+        
+        fetchComplaints();
+        fetchNotices();
+      } catch (err) {
+        window.location.href = '/login.html';
+      }
+    }
+
+    async function handleLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // Fetch Complaints
+    async function fetchComplaints() {
+      try {
+        const res = await fetch('/api/complaints');
+        if (res.ok) {
+          const data = await res.json();
+          currentComplaints = data.complaints || [];
+          renderComplaints();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderComplaints() {
+      const container = document.getElementById('complaintsList');
+      if (currentComplaints.length === 0) {
+        container.innerHTML = `<p style="color: #94a3b8; text-align: center; padding: 20px;">You haven't raised any complaints yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = currentComplaints.map(comp => `
+        <div class="list-item ${comp.is_overdue ? 'overdue' : ''}" onclick="showComplaintDetails(${comp.id})">
+          <div class="item-header">
+            <strong style="font-size: 1.05rem;">${comp.category}</strong>
+            <span style="font-size: 0.8rem; color: #64748b;">#${comp.id}</span>
+          </div>
+          <p style="font-size: 0.9rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;">
+            ${comp.description}
+          </p>
+          <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end;">
+            ${comp.is_overdue ? '<span class="badge badge-overdue">Overdue</span>' : ''}
+            <span class="badge badge-${comp.priority}">${comp.priority}</span>
+            <span class="badge badge-${comp.status.replace(/\s+/g, '-')}">${comp.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Submit Complaint
+    async function submitComplaint(e) {
+      e.preventDefault();
+      const category = document.getElementById('category').value;
+      const description = document.getElementById('description').value;
+      const photoInput = document.getElementById('photo');
+      const successDiv = document.getElementById('formSuccess');
+      const errorDiv = document.getElementById('formError');
+
+      successDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('category', category);
+      formData.append('description', description);
+      if (photoInput.files.length > 0) {
+        formData.append('photo', photoInput.files[0]);
+      }
+
+      try {
+        const res = await fetch('/api/complaints', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorDiv.innerText = data.error || 'Failed to submit complaint.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        successDiv.innerText = 'Complaint submitted successfully!';
+        successDiv.style.display = 'block';
+        document.getElementById('description').value = '';
+        photoInput.value = '';
+        
+        fetchComplaints();
+      } catch (err) {
+        errorDiv.innerText = 'Failed to connect to server.';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Notice Board
+    async function fetchNotices() {
+      try {
+        const res = await fetch('/api/notices');
+        if (res.ok) {
+          const data = await res.json();
+          renderNotices(data.notices || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderNotices(notices) {
+      const container = document.getElementById('noticesList');
+      if (notices.length === 0) {
+        container.innerHTML = `<p style="color: #94a3b8; text-align: center; padding: 20px;">No notices posted yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = notices.map(notice => `
+        <div style="border: 1px solid ${notice.is_important ? '#f43f5e' : '#334155'}; background: ${notice.is_important ? 'rgba(244,63,94,0.05)' : '#0f172a'}; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <strong style="font-size: 0.95rem;">${notice.is_important ? '⚠️ ' : ''}${notice.title}</strong>
+            ${notice.is_important ? '<span class="badge badge-High" style="font-size: 0.6rem;">Important</span>' : ''}
+          </div>
+          <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 6px;">
+            By ${notice.admin_name} • ${new Date(notice.created_at).toLocaleDateString()}
+          </div>
+          <p style="font-size: 0.85rem; color: #cbd5e1; white-space: pre-wrap;">${notice.content}</p>
+        </div>
+      `).join('');
+    }
+
+    // Modals
+    function showComplaintDetails(id) {
+      const comp = currentComplaints.find(c => c.id === id);
+      if (!comp) return;
+
+      document.getElementById('modalCategory').innerText = `Complaint #${comp.id}: ${comp.category}`;
+      document.getElementById('modalDescription').innerText = comp.description;
+      document.getElementById('modalDate').innerText = new Date(comp.created_at).toLocaleString();
+      
+      const statusBadge = document.getElementById('modalStatus');
+      statusBadge.innerText = comp.status;
+      statusBadge.className = `badge badge-${comp.status.replace(/\s+/g, '-')}`;
+      
+      const priorityBadge = document.getElementById('modalPriority');
+      priorityBadge.innerText = `Priority: ${comp.priority}`;
+      priorityBadge.className = `badge badge-${comp.priority}`;
+
+      const photoWrapper = document.getElementById('modalPhotoWrapper');
+      const photoImg = document.getElementById('modalPhoto');
+      if (comp.photo_url) {
+        photoImg.src = comp.photo_url;
+        photoWrapper.style.display = 'block';
+      } else {
+        photoWrapper.style.display = 'none';
+      }
+
+      const timelineContainer = document.getElementById('modalTimeline');
+      if (comp.history && comp.history.length > 0) {
+        timelineContainer.innerHTML = comp.history.map(hist => `
+          <div class="timeline-item">
+            <div class="timeline-meta">
+              <strong>${hist.actor_name}</strong> (${hist.actor_role}) • ${new Date(hist.created_at).toLocaleString()}
+            </div>
+            <div style="font-size: 0.85rem; font-weight: bold; margin-top: 2px;">
+              Status set to <span style="text-transform: uppercase;">${hist.status}</span>
+            </div>
+            ${hist.note ? `<p class="timeline-note">${hist.note}</p>` : ''}
+          </div>
+        `).join('');
+      } else {
+        timelineContainer.innerHTML = `<p style="color: #94a3b8; font-size: 0.85rem;">No lifecycle logs.</p>`;
+      }
+
+      document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').style.display = 'none';
+    }
+
+    // Floating Mailbox Actions
+    function toggleMailbox() {
+      const drawer = document.getElementById('mailboxDrawer');
+      drawer.style.display = drawer.style.display === 'flex' ? 'none' : 'flex';
+      if (drawer.style.display === 'flex') {
+        fetchMockEmails();
+      }
+    }
+
+    async function fetchMockEmails() {
+      try {
+        const res = await fetch('/api/mock-emails');
+        if (res.ok) {
+          const data = await res.json();
+          renderMockEmails(data.emails || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderMockEmails(emails) {
+      const body = document.getElementById('mailboxBody');
+      if (emails.length === 0) {
+        body.innerHTML = `<p style="color: #64748b; text-align: center; padding-top: 50px; font-size: 0.8rem;">No emails logged yet.</p>`;
+        return;
+      }
+      body.innerHTML = emails.map(email => `
+        <div class="mock-email">
+          <div class="mock-email-to">To: ${email.to_email}</div>
+          <div class="mock-email-subject">${email.subject}</div>
+          <div class="mock-email-content">${email.content}</div>
+        </div>
+      `).join('');
+    }
+
+    async function clearMockEmails() {
+      await fetch('/api/mock-emails', { method: 'DELETE' });
+      fetchMockEmails();
+    }
+
+    // Auto-poll emails if drawer open
+    setInterval(() => {
+      const drawer = document.getElementById('mailboxDrawer');
+      if (drawer.style.display === 'flex') {
+        fetchMockEmails();
+      }
+    }, 3000);
+
+    // Initial load
+    loadPortal();
+  </script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - Society Maintenance Tracker</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Admin dashboard subnavigation */
+    .sub-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .sub-nav .btn {
+      flex: 1;
+    }
+    .stats-boxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 2rem;
+      font-weight: 800;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <h1>Society Maintenance Tracker</h1>
+        <p>Admin Control Dashboard</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <span style="font-weight: bold; color: #94a3b8;">Administrator</span>
+        <button onclick="handleLogout()" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Log Out</button>
+      </div>
+    </header>
+
+    <!-- Stats Boxes Grid -->
+    <div class="stats-boxes">
+      <div class="stat-box" style="border-top: 4px solid #3b82f6;">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #94a3b8;">TOTAL</div>
+        <div class="stat-val" id="statTotal">0</div>
+      </div>
+      <div class="stat-box" style="border-top: 4px solid #3b82f6;">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #3b82f6;">🟢 OPEN</div>
+        <div class="stat-val" id="statOpen">0</div>
+      </div>
+      <div class="stat-box" style="border-top: 4px solid #eab308;">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #eab308;">🟡 IN PROGRESS</div>
+        <div class="stat-val" id="statInProgress">0</div>
+      </div>
+      <div class="stat-box" style="border-top: 4px solid #10b981;">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #10b981;">🔵 RESOLVED</div>
+        <div class="stat-val" id="statResolved">0</div>
+      </div>
+      <div class="stat-box" style="border-top: 4px solid #f43f5e;" id="statOverdueBox">
+        <div style="font-size: 0.8rem; font-weight: bold; color: #f43f5e;">⚠️ OVERDUE</div>
+        <div class="stat-val" id="statOverdue" style="color: #f43f5e;">0</div>
+      </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-2">
+      <!-- Left Column: Navigation & Forms/Feed -->
+      <div>
+        <div class="sub-nav">
+          <button id="navQueue" onclick="showSubView('queue')" class="btn btn-primary">Complaints Queue</button>
+          <button id="navNotice" onclick="showSubView('notice')" class="btn btn-secondary">Post Notice</button>
+          <button id="navSettings" onclick="showSubView('settings')" class="btn btn-secondary">System Settings</button>
+        </div>
+
+        <!-- VIEW 1: COMPLAINTS QUEUE -->
+        <div class="card" id="viewQueue">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📋 Complaints Queue</h2>
+          
+          <!-- Filters Bar -->
+          <div class="filters-bar" style="display: flex; gap: 10px; flex-wrap: wrap; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 16px;">
+            <div style="flex: 1; min-width: 120px;">
+              <select id="filterCat" onchange="fetchComplaints()" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;">
+                <option value="All">All Categories</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Security">Security</option>
+                <option value="Cleaning">Cleaning</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+              <select id="filterStat" onchange="fetchComplaints()" class="form-control" style="padding: 6px 10px; font-size: 0.85rem;">
+                <option value="All">All Statuses</option>
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+              <input type="date" id="filterDt" onchange="fetchComplaints()" class="form-control" style="padding: 5px 10px; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <div id="complaintsList">
+            <p style="color: #94a3b8; text-align: center; padding: 20px;">Fetching queue...</p>
+          </div>
+        </div>
+
+        <!-- VIEW 2: POST NOTICE -->
+        <div class="card" id="viewNotice" style="display: none;">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📢 Post New Notice</h2>
+          
+          <div id="noticeSuccess" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+          <div id="noticeError" style="background: rgba(244, 63, 94, 0.15); border: 1px solid #f43f5e; color: #f43f5e; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+
+          <form onsubmit="postNotice(event)">
+            <div class="form-group">
+              <label class="form-label" for="noticeTitle">Notice Title</label>
+              <input type="text" id="noticeTitle" class="form-control" placeholder="e.g. Scheduled Maintenance" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="noticeContent">Notice Content</label>
+              <textarea id="noticeContent" rows="4" class="form-control" placeholder="Provide notice details for residents..." required></textarea>
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="noticeImportant" style="width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer;">
+              <label for="noticeImportant" class="form-label" style="margin: 0; cursor: pointer;">
+                Mark as Important (Sends automated email notifications to all residents)
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Post Notice</button>
+          </form>
+        </div>
+
+        <!-- VIEW 3: SETTINGS -->
+        <div class="card" id="viewSettings" style="display: none;">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">⚙️ System Settings</h2>
+          
+          <div id="settingsSuccess" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #10b981; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+          <div id="settingsError" style="background: rgba(244, 63, 94, 0.15); border: 1px solid #f43f5e; color: #f43f5e; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 0.9rem; display: none;"></div>
+
+          <form onsubmit="saveSettings(event)">
+            <div class="form-group">
+              <label class="form-label" for="overdueThreshold">Overdue Limit Threshold (Days)</label>
+              <p style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 8px;">
+                Unresolved complaints open longer than this threshold will be flagged as overdue.
+              </p>
+              <input type="number" id="overdueThreshold" min="0" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Settings</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Column: Stats Chart & Notices list -->
+      <div>
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📊 Category Breakdown</h2>
+          <div id="categoryChart">
+            <p style="color: #94a3b8; text-align: center;">Loading breakdown...</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 16px;">📢 Active Announcements</h2>
+          <div id="noticesList">
+            <p style="color: #94a3b8; text-align: center;">Loading notices...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Modal -->
+  <div class="modal" id="actionModal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h2 id="modalTitle" style="margin-bottom: 4px;">Manage Complaint</h2>
+      <p id="modalSub" style="color: #94a3b8; font-size: 0.8rem; margin-bottom: 16px;"></p>
+
+      <div style="background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 20px;">
+        <h4 style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px;">DESCRIPTION</h4>
+        <p id="modalDesc" style="font-size: 0.95rem; white-space: pre-wrap;"></p>
+        
+        <div id="modalPhotoWrapper" style="margin-top: 12px; display: none;">
+          <h4 style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px;">ATTACHED PHOTO</h4>
+          <img id="modalPhoto" src="" alt="Attachment" style="max-width: 100%; max-height: 200px; border-radius: 6px; border: 1px solid #334155;">
+        </div>
+      </div>
+
+      <!-- Updates Form -->
+      <div style="background: rgba(37,99,235,0.05); border: 1px solid #334155; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <h3 style="font-size: 1rem; font-weight: bold; margin-bottom: 12px; color: #3b82f6;">⚙️ Update Status & Priority</h3>
+        <form onsubmit="updateComplaint(event)">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="actionStatus">Status</label>
+              <select id="actionStatus" class="form-control">
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved (Close)</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" for="actionPriority">Priority</label>
+              <select id="actionPriority" class="form-control">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="actionNote">Status Change Note (Optional, emailed to resident)</label>
+            <input type="text" id="actionNote" class="form-control" placeholder="e.g. Assigned to plumber, visits tomorrow afternoon.">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Save Updates</button>
+        </form>
+      </div>
+
+      <!-- History log -->
+      <div>
+        <h3 style="font-size: 1.05rem; font-weight: bold; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 6px;">
+          ⏳ History Log
+        </h3>
+        <div class="timeline" id="modalTimeline"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mock Mailbox Trigger & Drawer -->
+  <button class="mock-mailbox-btn" onclick="toggleMailbox()">📬 Mock Mailbox</button>
+  <div class="mock-mailbox-drawer" id="mailboxDrawer">
+    <div class="drawer-header">
+      <h4 style="color: #f59e0b;">📬 Mock Email Log</h4>
+      <button onclick="clearMockEmails()" style="background: transparent; color: #94a3b8; border: none; cursor: pointer; text-decoration: underline; font-size: 0.75rem;">Clear All</button>
+      <button onclick="toggleMailbox()" style="background: transparent; color: white; border: none; cursor: pointer; font-weight: bold;">✕</button>
+    </div>
+    <div class="drawer-body" id="mailboxBody">
+      <p style="color: #64748b; text-align: center; padding-top: 50px; font-size: 0.8rem;">No emails logged yet.</p>
+    </div>
+  </div>
+
+  <script>
+    let currentComplaints = [];
+    let selectedComplaintId = null;
+
+    // Authenticate Admin
+    async function loadPortal() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          window.location.href = '/login.html';
+          return;
+        }
+        const data = await res.json();
+        const user = data.user;
+        
+        if (user.role !== 'admin') {
+          window.location.href = '/index.html';
+          return;
+        }
+
+        fetchComplaints();
+        fetchNotices();
+        fetchSettings();
+      } catch (err) {
+        window.location.href = '/login.html';
+      }
+    }
+
+    async function handleLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login.html';
+    }
+
+    // Toggle Tab Subviews
+    function showSubView(view) {
+      document.getElementById('viewQueue').style.display = view === 'queue' ? 'block' : 'none';
+      document.getElementById('viewNotice').style.display = view === 'notice' ? 'block' : 'none';
+      document.getElementById('viewSettings').style.display = view === 'settings' ? 'block' : 'none';
+
+      document.getElementById('navQueue').className = `btn btn-${view === 'queue' ? 'primary' : 'secondary'}`;
+      document.getElementById('navNotice').className = `btn btn-${view === 'notice' ? 'primary' : 'secondary'}`;
+      document.getElementById('navSettings').className = `btn btn-${view === 'settings' ? 'primary' : 'secondary'}`;
+    }
+
+    // Fetch Complaints
+    async function fetchComplaints() {
+      const filterCategory = document.getElementById('filterCat').value;
+      const filterStatus = document.getElementById('filterStat').value;
+      const filterDate = document.getElementById('filterDt').value;
+
+      const queryParams = new URLSearchParams();
+      if (filterCategory !== 'All') queryParams.append('category', filterCategory);
+      if (filterStatus !== 'All') queryParams.append('status', filterStatus);
+      if (filterDate) queryParams.append('date', filterDate);
+
+      try {
+        const res = await fetch(`/api/complaints?${queryParams.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          currentComplaints = data.complaints || [];
+          renderComplaints();
+          renderStatsAndChart();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderComplaints() {
+      const container = document.getElementById('complaintsList');
+      if (currentComplaints.length === 0) {
+        container.innerHTML = `<p style="color: #94a3b8; text-align: center; padding: 20px;">No complaints in queue matching filters.</p>`;
+        return;
+      }
+
+      container.innerHTML = currentComplaints.map(comp => `
+        <div class="list-item ${comp.is_overdue ? 'overdue' : ''}" onclick="showComplaintActions(${comp.id})">
+          <div class="item-header">
+            <div>
+              <strong style="font-size: 1.05rem;">${comp.category}</strong>
+              <span style="font-size: 0.8rem; color: #64748b; margin-left: 8px;">#${comp.id} • Unit ${comp.unit_number} (by @${comp.resident_name})</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b;">
+              ${new Date(comp.created_at).toLocaleDateString()}
+            </div>
+          </div>
+          <p style="font-size: 0.9rem; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 8px;">
+            ${comp.description}
+          </p>
+          <div style="display: flex; gap: 6px; align-items: center; justify-content: flex-end;">
+            ${comp.is_overdue ? '<span class="badge badge-overdue">Overdue</span>' : ''}
+            <span class="badge badge-${comp.priority}">${comp.priority}</span>
+            <span class="badge badge-${comp.status.replace(/\s+/g, '-')}">${comp.status}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderStatsAndChart() {
+      // Calculate Stats
+      const total = currentComplaints.length;
+      const open = currentComplaints.filter(c => c.status === 'Open').length;
+      const progress = currentComplaints.filter(c => c.status === 'In Progress').length;
+      const resolved = currentComplaints.filter(c => c.status === 'Resolved').length;
+      const overdue = currentComplaints.filter(c => c.is_overdue).length;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statOpen').innerText = open;
+      document.getElementById('statInProgress').innerText = progress;
+      document.getElementById('statResolved').innerText = resolved;
+      document.getElementById('statOverdue').innerText = overdue;
+      
+      const overdueBox = document.getElementById('statOverdueBox');
+      if (overdue > 0) {
+        overdueBox.style.boxShadow = '0 0 10px rgba(244,63,94,0.3)';
+        overdueBox.style.borderColor = '#f43f5e';
+      } else {
+        overdueBox.style.boxShadow = '';
+        overdueBox.style.borderColor = '#334155';
+      }
+
+      // Render chart
+      const categories = ['Plumbing', 'Electrical', 'Security', 'Cleaning', 'Others'];
+      const counts = categories.reduce((acc, cat) => {
+        acc[cat] = currentComplaints.filter(c => c.category === cat).length;
+        return acc;
+      }, {});
+      const maxCount = Math.max(...Object.values(counts), 1);
+
+      const chartContainer = document.getElementById('categoryChart');
+      chartContainer.innerHTML = categories.map(cat => {
+        const count = counts[cat];
+        const percentage = (count / maxCount) * 100;
+        return `
+          <div class="chart-bar">
+            <span class="chart-label">${cat}</span>
+            <div class="chart-track">
+              <div class="chart-fill" style="width: ${percentage}%;"></div>
+            </div>
+            <span class="chart-val">${count}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Modal Actions
+    function showComplaintActions(id) {
+      const comp = currentComplaints.find(c => c.id === id);
+      if (!comp) return;
+
+      selectedComplaintId = id;
+      document.getElementById('modalTitle').innerText = `Manage Complaint #${comp.id}: ${comp.category}`;
+      document.getElementById('modalSub').innerText = `Raised by @${comp.resident_name} (Unit ${comp.unit_number}) on ${new Date(comp.created_at).toLocaleString()}`;
+      document.getElementById('modalDesc').innerText = comp.description;
+
+      document.getElementById('actionStatus').value = comp.status;
+      document.getElementById('actionPriority').value = comp.priority;
+      document.getElementById('actionNote').value = '';
+
+      const photoWrapper = document.getElementById('modalPhotoWrapper');
+      const photoImg = document.getElementById('modalPhoto');
+      if (comp.photo_url) {
+        photoImg.src = comp.photo_url;
+        photoWrapper.style.display = 'block';
+      } else {
+        photoWrapper.style.display = 'none';
+      }
+
+      const timelineContainer = document.getElementById('modalTimeline');
+      if (comp.history && comp.history.length > 0) {
+        timelineContainer.innerHTML = comp.history.map(hist => `
+          <div class="timeline-item">
+            <div class="timeline-meta">
+              <strong>${hist.actor_name}</strong> (${hist.actor_role}) • ${new Date(hist.created_at).toLocaleString()}
+            </div>
+            <div style="font-size: 0.85rem; font-weight: bold; margin-top: 2px;">
+              Status set to <span style="text-transform: uppercase;">${hist.status}</span>
+            </div>
+            ${hist.note ? `<p class="timeline-note">${hist.note}</p>` : ''}
+          </div>
+        `).join('');
+      } else {
+        timelineContainer.innerHTML = `<p style="color: #94a3b8; font-size: 0.85rem;">No history log.</p>`;
+      }
+
+      document.getElementById('actionModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('actionModal').style.display = 'none';
+    }
+
+    // Update Status API
+    async function updateComplaint(e) {
+      e.preventDefault();
+      const status = document.getElementById('actionStatus').value;
+      const priority = document.getElementById('actionPriority').value;
+      const note = document.getElementById('actionNote').value;
+
+      try {
+        const res = await fetch(`/api/complaints/${selectedComplaintId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, priority, note })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          alert(data.error || 'Failed to update complaint.');
+          return;
+        }
+
+        closeModal();
+        fetchComplaints();
+      } catch (err) {
+        alert('Failed to connect to server.');
+      }
+    }
+
+    // Notice Board POST
+    async function postNotice(e) {
+      e.preventDefault();
+      const title = document.getElementById('noticeTitle').value;
+      const content = document.getElementById('noticeContent').value;
+      const is_important = document.getElementById('noticeImportant').checked;
+      const successDiv = document.getElementById('noticeSuccess');
+      const errorDiv = document.getElementById('noticeError');
+
+      successDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/notices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content, is_important })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorDiv.innerText = data.error || 'Failed to post notice.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        successDiv.innerText = `Notice posted successfully!${is_important ? ' Residents notified by email.' : ''}`;
+        successDiv.style.display = 'block';
+        document.getElementById('noticeTitle').value = '';
+        document.getElementById('noticeContent').value = '';
+        document.getElementById('noticeImportant').checked = false;
+
+        fetchNotices();
+      } catch (err) {
+        errorDiv.innerText = 'Failed to connect to server.';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Active Announcements list
+    async function fetchNotices() {
+      try {
+        const res = await fetch('/api/notices');
+        if (res.ok) {
+          const data = await res.json();
+          renderNotices(data.notices || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderNotices(notices) {
+      const container = document.getElementById('noticesList');
+      if (notices.length === 0) {
+        container.innerHTML = `<p style="color: #94a3b8; text-align: center;">No notices posted.</p>`;
+        return;
+      }
+      container.innerHTML = notices.slice(0, 5).map(notice => `
+        <div style="border: 1px solid ${notice.is_important ? '#f43f5e' : '#334155'}; background: #0f172a; border-radius: 6px; padding: 10px; margin-bottom: 10px; font-size: 0.85rem;">
+          <div style="font-weight: bold; margin-bottom: 2px;">${notice.is_important ? '⚠️ ' : ''}${notice.title}</div>
+          <div style="font-size: 0.7rem; color: #64748b; margin-bottom: 4px;">By ${notice.admin_name} • ${new Date(notice.created_at).toLocaleDateString()}</div>
+          <p style="color: #cbd5e1; font-size: 0.8rem; white-space: pre-wrap;">${notice.content}</p>
+        </div>
+      `).join('');
+    }
+
+    // Settings API
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('overdueThreshold').value = data.overdue_days_threshold;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function saveSettings(e) {
+      e.preventDefault();
+      const overdue_days_threshold = document.getElementById('overdueThreshold').value;
+      const successDiv = document.getElementById('settingsSuccess');
+      const errorDiv = document.getElementById('settingsError');
+
+      successDiv.style.display = 'none';
+      errorDiv.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ overdue_days_threshold })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          errorDiv.innerText = data.error || 'Failed to save settings.';
+          errorDiv.style.display = 'block';
+          return;
+        }
+
+        successDiv.innerText = 'Overdue threshold updated successfully!';
+        successDiv.style.display = 'block';
+        fetchComplaints(); // Refresh list to update overdue flags!
+      } catch (err) {
+        errorDiv.innerText = 'Failed to connect to server.';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Floating Mailbox Drawer Actions
+    function toggleMailbox() {
+      const drawer = document.getElementById('mailboxDrawer');
+      drawer.style.display = drawer.style.display === 'flex' ? 'none' : 'flex';
+      if (drawer.style.display === 'flex') {
+        fetchMockEmails();
+      }
+    }
+
+    async function fetchMockEmails() {
+      try {
+        const res = await fetch('/api/mock-emails');
+        if (res.ok) {
+          const data = await res.json();
+          renderMockEmails(data.emails || []);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderMockEmails(emails) {
+      const body = document.getElementById('mailboxBody');
+      if (emails.length === 0) {
+        body.innerHTML = `<p style="color: #64748b; text-align: center; padding-top: 50px; font-size: 0.8rem;">No emails logged yet.</p>`;
+        return;
+      }
+      body.innerHTML = emails.map(email => `
+        <div class="mock-email">
+          <div class="mock-email-to">To: ${email.to_email}</div>
+          <div class="mock-email-subject">${email.subject}</div>
+          <div class="mock-email-content">${email.content}</div>
+        </div>
+      `).join('');
+    }
+
+    async function clearMockEmails() {
+      await fetch('/api/mock-emails', { method: 'DELETE' });
+      fetchMockEmails();
+    }
+
+    setInterval(() => {
+      const drawer = document.getElementById('mailboxDrawer');
+      if (drawer.style.display === 'flex') {
+        fetchMockEmails();
+      }
+    }, 3000);
+
+    // Initial load
+    loadPortal();
+  </script>
+</body>
+</html>
